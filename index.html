@@ -3,52 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INNACRI - Navegación GPS Avanzada</title>
+    <title>INNACRI - Real-Time GPS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/turf.js/6/turf.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; }
-        
-        body { 
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; 
-            background: #0a0e27; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e27;
             overflow: hidden;
+        }
+
+        body {
             color: #fff;
         }
 
-        /* ========== CONTENEDOR PRINCIPAL ========== */
-        .main-container {
+        .container {
             width: 100%;
             height: 100%;
             display: flex;
             flex-direction: column;
         }
 
-        /* ========== MAPA PRINCIPAL ========== */
-        #mapContainer {
+        .map {
+            flex: 1;
             width: 100%;
-            height: 100%;
-            position: relative;
-            background: linear-gradient(135deg, #1a1f3a 0%, #0f1219 100%);
+            background: #e8e8e8;
         }
 
         #map {
             width: 100%;
             height: 100%;
-            /* Aplicar perspectiva 3D */
-            perspective: 1000px;
         }
 
         .leaflet-container {
-            transform: perspective(2000px) rotateX(8deg) rotateZ(0deg);
-            transform-origin: center bottom;
-            transition: transform 0.3s ease;
+            background: #e8e8e8 !important;
         }
 
-        /* ========== PANEL SUPERIOR DE BÚSQUEDA ========== */
-        .search-panel {
+        /* TOP PANEL */
+        .top-panel {
             position: fixed;
             top: 0;
             left: 0;
@@ -57,89 +58,121 @@
             backdrop-filter: blur(20px);
             padding: 16px;
             z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
             border-bottom: 1px solid rgba(102, 126, 234, 0.1);
         }
 
-        .search-panel.hidden { display: none; }
-
-        .search-title { 
-            color: #667eea; 
-            font-size: 14px; 
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .search-row {
+        .top-content {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             align-items: center;
         }
 
         .search-input {
             flex: 1;
             background: rgba(255, 255, 255, 0.08);
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 1px solid rgba(102, 126, 234, 0.2);
-            font-size: 14px;
-            color: #fff;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .search-input::placeholder { color: rgba(255, 255, 255, 0.4); }
-        .search-input:focus { 
-            outline: none; 
-            background: rgba(255, 255, 255, 0.12);
-            border-color: #667eea;
-            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
-            transform: translateY(-1px);
-        }
-
-        .btn-icon {
-            background: rgba(102, 126, 234, 0.15);
-            color: #667eea;
-            border: 1px solid rgba(102, 126, 234, 0.3);
             padding: 12px 14px;
             border-radius: 10px;
-            cursor: pointer;
-            font-size: 18px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            color: #fff;
+            font-size: 14px;
+            max-width: 600px;
         }
 
-        .btn-icon:hover { 
-            background: rgba(102, 126, 234, 0.25);
+        .search-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.12);
             border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
         }
 
-        .btn-icon:active {
-            transform: translateY(0);
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
         }
 
-        .location-tag {
-            background: rgba(76, 175, 80, 0.1);
+        .btn {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: #667eea;
             padding: 10px 14px;
             border-radius: 8px;
-            color: #4CAF50;
-            font-size: 12px;
-            border-left: 3px solid #4CAF50;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
         }
 
-        .location-tag.empty { color: rgba(255, 255, 255, 0.5); }
+        .btn:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
 
-        /* ========== PANEL DE RUTA ========== */
+        /* HUD */
+        .hud {
+            position: fixed;
+            top: 75px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            padding: 16px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            z-index: 500;
+            min-width: 300px;
+            font-size: 14px;
+        }
+
+        .hud-title {
+            color: #667eea;
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .hud-row:last-child {
+            border-bottom: none;
+        }
+
+        .hud-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+        }
+
+        .hud-value {
+            font-weight: 700;
+            color: #4CAF50;
+            font-family: monospace;
+        }
+
+        .hud-value.bearing {
+            color: #667eea;
+        }
+
+        .hud-value.distance {
+            color: #FF9800;
+        }
+
+        .status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ROUTE PANEL */
         .route-panel {
             position: fixed;
             bottom: 0;
@@ -147,960 +180,324 @@
             right: 0;
             background: linear-gradient(to top, rgba(10, 14, 39, 0.98), rgba(26, 31, 58, 0.95));
             backdrop-filter: blur(20px);
-            padding: 24px;
+            padding: 20px;
             z-index: 500;
             display: none;
-            border-radius: 28px 28px 0 0;
-            box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.8);
-            max-height: 60vh;
-            overflow-y: auto;
-            border: 1px solid rgba(102, 126, 234, 0.1);
-            animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-top: 1px solid rgba(102, 126, 234, 0.1);
         }
 
-        @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .route-panel.show { display: block; }
-
-        .route-header {
+        .route-panel.show {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid rgba(102, 126, 234, 0.15);
-        }
-
-        .route-title { 
-            color: #667eea; 
-            font-size: 20px; 
-            font-weight: 700;
-        }
-
-        .route-stats {
-            display: flex;
-            justify-content: space-around;
-            text-align: center;
-            margin-bottom: 20px;
             gap: 12px;
         }
 
-        .stat {
+        .route-info {
             flex: 1;
-            background: rgba(102, 126, 234, 0.08);
-            padding: 16px;
-            border-radius: 14px;
-            border: 1px solid rgba(102, 126, 234, 0.15);
-            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        .stat:hover {
-            background: rgba(102, 126, 234, 0.12);
-            transform: translateY(-2px);
-        }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #667eea;
+        .route-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
         }
 
         .stat-label {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-
-
-        .instruction {
-            padding: 12px;
-            margin-bottom: 8px;
-            color: #ddd;
-            font-size: 13px;
-            background: rgba(255, 255, 255, 0.03);
-            border-left: 3px solid #667eea;
-            border-radius: 6px;
-            line-height: 1.5;
-        }
-
-        .buttons-row {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 16px;
-            border: none;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-start {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-start:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 28px rgba(102, 126, 234, 0.5);
-        }
-
-        .btn-real {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
-        }
-
-        .btn-real:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 28px rgba(76, 175, 80, 0.5);
-        }
-
-        /* ========== PANEL DE NAVEGACIÓN ========== */
-        .nav-panel {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 2000;
-            display: none;
-            flex-direction: column;
-        }
-
-        .nav-panel.active { display: flex; }
-
-        .nav-map { 
-            flex: 1; 
-            position: relative; 
-            overflow: hidden;
-        }
-
-        #navMap { 
-            width: 100%; 
-            height: 100%;
-            filter: brightness(1.1);
-        }
-
-        /* Indicador de ruta en 3D */
-        .nav-route-info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.92);
-            backdrop-filter: blur(16px);
-            padding: 18px;
-            border-radius: 16px;
-            border: 1px solid rgba(102, 126, 234, 0.4);
-            z-index: 10;
-            animation: slideIn 0.4s ease;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .nav-next-instruction {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 12px;
-        }
-
-        .nav-icon {
-            font-size: 40px;
-            min-width: 50px;
-            text-align: center;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.05); }
-        }
-
-        .nav-instruction-text {
-            flex: 1;
-        }
-
-        .nav-inst {
-            font-size: 18px;
-            font-weight: 700;
-            color: #667eea;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-
-        .nav-detail {
-            font-size: 13px;
             color: rgba(255, 255, 255, 0.6);
-        }
-
-        .nav-stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 12px;
-            border-top: 1px solid rgba(102, 126, 234, 0.2);
-        }
-
-        .nav-stat {
-            text-align: center;
-            flex: 1;
-        }
-
-        .nav-stat-label {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.4);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
         }
 
-        .nav-stat-value {
-            font-size: 16px;
-            font-weight: 700;
-            color: #4CAF50;
-        }
-
-        /* Controles flotantes */
-        .nav-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 12px;
-            z-index: 15;
-        }
-
-        .nav-btn {
-            background: rgba(102, 126, 234, 0.2);
-            color: #667eea;
-            border: 1px solid rgba(102, 126, 234, 0.4);
-            padding: 14px 20px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.3s;
-            backdrop-filter: blur(12px);
-        }
-
-        .nav-btn:hover {
-            background: rgba(102, 126, 234, 0.3);
-            border-color: #667eea;
-            transform: translateY(-2px);
-        }
-
-        /* ========== MODAL DE UBICACIÓN ========== */
-        .location-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.95);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 3000;
-            animation: fadeIn 0.4s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .location-modal.hidden { display: none; }
-
-        .location-modal-content {
-            background: linear-gradient(135deg, #1a1f3a 0%, #0f1219 100%);
-            border: 1px solid rgba(102, 126, 234, 0.2);
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            max-width: 400px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
-        }
-
-        .location-modal-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .location-modal-title {
-            font-size: 24px;
+        .stat-value {
             font-weight: 700;
             color: #667eea;
-            margin-bottom: 12px;
         }
 
-        .location-modal-text {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 28px;
-        }
-
-        .location-modal-buttons {
+        .buttons {
             display: flex;
-            gap: 12px;
-        }
-
-        .location-modal-btn {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-allow {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-            color: white;
-        }
-
-        .btn-allow:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-        }
-
-        .btn-skip {
-            background: rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-
-        .btn-skip:hover {
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        /* ========== SCROLLBAR PERSONALIZADA ========== */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(102, 126, 234, 0.4);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(102, 126, 234, 0.6);
-        }
-
-        /* ========== INDICADOR DE ESTADO ========== */
-        .status-indicator {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 16px;
-            background: rgba(76, 175, 80, 0.15);
-            border: 1px solid #4CAF50;
-            border-radius: 20px;
-            color: #4CAF50;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 999;
-            display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 8px;
-            animation: fadeIn 0.4s ease;
         }
 
-        .status-indicator.offline {
-            background: rgba(255, 152, 0, 0.15);
-            border-color: #FF9800;
-            color: #FF9800;
+        .btn-action {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            white-space: nowrap;
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-            animation: blink 2s infinite;
+        .btn-action:hover {
+            transform: translateY(-2px);
         }
 
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+        .btn-stop {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        @media (max-width: 768px) {
+            .hud {
+                min-width: 240px;
+                right: 10px;
+                top: 70px;
+                padding: 12px 14px;
+            }
+
+            .route-panel {
+                padding: 12px;
+            }
+
+            .buttons {
+                flex-direction: row;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <!-- MODAL DE UBICACIÓN -->
-        <div class="location-modal" id="locationModal">
-            <div class="location-modal-content">
-                <div class="location-modal-icon">📍</div>
-                <div class="location-modal-title">Acceso a Ubicación</div>
-                <div class="location-modal-text">
-                    Para brindarte la mejor experiencia de navegación en modo realista, necesitamos acceso a tu ubicación actual.
-                </div>
-                <div class="location-modal-buttons">
-                    <button class="location-modal-btn btn-allow" onclick="requestLocation()">Permitir</button>
-                    <button class="location-modal-btn btn-skip" onclick="skipLocation()">Usar Demo</button>
-                </div>
+    <div class="container">
+        <div class="map" id="map"></div>
+    </div>
+
+    <!-- TOP PANEL -->
+    <div class="top-panel">
+        <div class="top-content">
+            <input type="text" class="search-input" id="searchInput" placeholder="Buscar destino (Zona 10, Antigua, etc)">
+            <button class="btn" id="searchBtn">🔍</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div class="hud" id="hud" style="display: none;">
+        <div class="hud-title">
+            <span class="status"></span> TRACKING EN VIVO
+        </div>
+        <div class="hud-row">
+            <span class="hud-label">Velocidad</span>
+            <span class="hud-value" id="speedValue">0 km/h</span>
+        </div>
+        <div class="hud-row">
+            <span class="hud-label">Rumbo</span>
+            <span class="hud-value bearing" id="bearingValue">↑ N (0°)</span>
+        </div>
+        <div class="hud-row">
+            <span class="hud-label">Precisión</span>
+            <span class="hud-value" id="accuracyValue">0m</span>
+        </div>
+        <div class="hud-row" id="distanceRow" style="display: none;">
+            <span class="hud-label">Dist. Destino</span>
+            <span class="hud-value distance" id="distanceValue">0 km</span>
+        </div>
+    </div>
+
+    <!-- ROUTE PANEL -->
+    <div class="route-panel" id="routePanel">
+        <div class="route-info">
+            <div class="route-stat">
+                <span class="stat-label">Distancia</span>
+                <span class="stat-value" id="panelDist">0 km</span>
+            </div>
+            <div class="route-stat">
+                <span class="stat-label">ETA</span>
+                <span class="stat-value" id="panelEta">0 min</span>
+            </div>
+            <div class="route-stat">
+                <span class="stat-label">Velocidad</span>
+                <span class="stat-value" id="panelSpeed">0 km/h</span>
             </div>
         </div>
-
-        <!-- PANEL DE BÚSQUEDA -->
-        <div class="search-panel" id="searchPanel">
-            <div class="search-title">🗺️ Navegación Inteligente</div>
-            <div class="search-row">
-                <input type="text" class="search-input" id="destInput" placeholder="¿A dónde deseas ir?" onkeypress="handleSearch(event)">
-                <button class="btn-icon" onclick="searchDestination()">🔍</button>
-            </div>
-            <div class="location-tag" id="currentLocation">
-                <span>📍</span>
-                <span id="currentLocationText">Cargando ubicación...</span>
-            </div>
-        </div>
-
-        <!-- CONTENEDOR DEL MAPA -->
-        <div id="mapContainer">
-            <div id="map"></div>
-        </div>
-
-        <!-- PANEL DE RUTA -->
-        <div class="route-panel" id="routePanel">
-            <div class="route-header">
-                <div class="route-title">Ruta Calculada</div>
-                <button class="btn-icon" onclick="closeRoute()" style="background: rgba(255, 100, 100, 0.1); color: #ff6464;">✕</button>
-            </div>
-
-            <div class="route-stats">
-                <div class="stat">
-                    <div class="stat-value" id="routeDist">0 km</div>
-                    <div class="stat-label">Distancia</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="routeTime">0 min</div>
-                    <div class="stat-label">Tiempo Est.</div>
-                </div>
-            </div>
-
-            <div class="instructions" id="instructions"></div>
-
-            <div class="buttons-row">
-                <button class="btn btn-start" onclick="startNav()">▶ Simulación</button>
-                <button class="btn btn-real" onclick="startReal()">🎯 Modo Real</button>
-            </div>
-        </div>
-
-        <!-- PANEL DE NAVEGACIÓN -->
-        <div class="nav-panel" id="navPanel">
-            <div class="nav-map">
-                <div id="navMap"></div>
-
-                <!-- INFO DE RUTA -->
-                <div class="nav-route-info">
-                    <div class="nav-next-instruction">
-                        <div class="nav-icon" id="navIcon">→</div>
-                        <div class="nav-instruction-text">
-                            <div class="nav-inst" id="navInst">Continúa</div>
-                            <div class="nav-detail" id="navDetail">en la calle principal</div>
-                        </div>
-                    </div>
-
-                    <div class="nav-stats">
-                        <div class="nav-stat">
-                            <div class="nav-stat-label">Distancia</div>
-                            <div class="nav-stat-value" id="navDist">0 km</div>
-                        </div>
-                        <div class="nav-stat">
-                            <div class="nav-stat-label">Tiempo / Velocidad</div>
-                            <div class="nav-stat-value" id="navDir">-- min • -- km/h</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- CONTROLES -->
-                <div class="nav-controls">
-                    <button class="nav-btn" id="pauseBtn" onclick="togglePause()">⏸ Pausar</button>
-                    <button class="nav-btn" onclick="endNav()">✕ Finalizar</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- INDICADOR DE ESTADO -->
-        <div class="status-indicator" id="status">
-            <div class="status-dot"></div>
-            <span id="statusText">Conectado</span>
+        <div class="buttons">
+            <button class="btn-action" id="pauseBtn">⏸ Pausar</button>
+            <button class="btn-action btn-stop" id="stopBtn">✕ Finalizar</button>
         </div>
     </div>
 
     <script>
-        // ========== VARIABLES GLOBALES ==========
-        let map, navMap, userMarker;
-        let origin = null, dest = null;
-        let route = [];
-        let instructions = [];
-        let dist = 0, time = 0, speed = 0;
-        let navActive = false, navPaused = false, realMode = false;
-        let navIdx = 0, progress = 0;
-        let navInterval = null;
-        let geoId = null;
-        let synth = window.speechSynthesis;
-        let isOnline = navigator.onLine;
+        // PLACES
+        const PLACES = {
+            'Zona 10': { lat: 14.6126, lng: -90.5218 },
+            'Zona 1': { lat: 14.6307, lng: -90.5010 },
+            'Zona 15': { lat: 14.6411, lng: -90.4880 },
+            'Zona 3': { lat: 14.5960, lng: -90.5112 },
+            'Zona 18': { lat: 14.5500, lng: -90.5800 },
+            'Aeropuerto': { lat: 14.3583, lng: -90.6525 },
+            'Antigua': { lat: 14.5729, lng: -90.7381 },
+            'Tikal': { lat: 17.2220, lng: -89.6239 },
+            'Volcán Pacaya': { lat: 14.3833, lng: -90.6000 },
+            'Lago Atitlán': { lat: 14.6961, lng: -91.2458 }
+        };
+
+        // STATE
+        let map;
         let userLocation = null;
-        let locationRequested = false;
-        let lastInstructionTime = 0;
-        let lastDistUpdateTime = 0;
+        let destination = null;
+        let lastLocation = null;
+        let watchId = null;
+        let userMarker = null;
+        let routeLayer = null;
+        let tracking = false;
 
-        // ========== INICIALIZACIÓN ==========
-        function init() {
-            // Mapa inicial
-            map = L.map('map', { zoomControl: true, attributionControl: false })
-                .setView([14.6343, -90.5069], 12); // Centro de Guatemala City
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                minZoom: 10
+        // INIT MAP
+        function initMap() {
+            map = L.map('map', {
+                center: [14.6349, -90.5069],
+                zoom: 15,
+                zoomControl: false,
+                attributionControl: false
+            });
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                subdomains: 'abcd',
+                maxZoom: 20,
+                attribution: ''
             }).addTo(map);
-
-            // Detectar conexión
-            window.addEventListener('online', () => { isOnline = true; updateStatus(); });
-            window.addEventListener('offline', () => { isOnline = false; updateStatus(); });
-
-            // Solicitar ubicación al cargar
-            setTimeout(() => {
-                if (!locationRequested) {
-                    showLocationModal();
-                }
-            }, 500);
-
-            updateStatus();
         }
 
-        // ========== GESTIÓN DE UBICACIÓN ==========
-        function showLocationModal() {
-            document.getElementById('locationModal').classList.remove('hidden');
-        }
-
-        function requestLocation() {
-            locationRequested = true;
+        // GET LOCATION
+        function startTracking() {
             if (!navigator.geolocation) {
-                alert('Geolocalización no disponible en tu navegador');
-                skipLocation();
+                alert('Geolocalización no disponible');
                 return;
             }
 
-            document.getElementById('locationModal').innerHTML = `
-                <div class="location-modal-content">
-                    <div class="location-modal-icon">⏳</div>
-                    <div class="location-modal-title">Obteniendo ubicación...</div>
-                    <div class="location-modal-text">Por favor espera mientras detectamos tu posición</div>
-                </div>
-            `;
+            document.getElementById('hud').style.display = 'block';
 
-            navigator.geolocation.getCurrentPosition(
-                pos => {
-                    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    origin = userLocation;
-                    updateCurrentLocation();
-                    document.getElementById('locationModal').classList.add('hidden');
-                    map.setView([origin.lat, origin.lng], 15);
-                },
-                () => {
-                    alert('No se pudo acceder a tu ubicación. Usando ubicación por defecto.');
-                    skipLocation();
+            // Primera ubicación
+            navigator.geolocation.getCurrentPosition((pos) => {
+                userLocation = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude
+                };
+                lastLocation = userLocation;
+                map.setView([userLocation.lat, userLocation.lng], 15);
+            });
+
+            // Watch position
+            watchId = navigator.geolocation.watchPosition((pos) => {
+                const newLoc = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    speed: Math.round((pos.coords.speed || 0) * 3.6),
+                    accuracy: Math.round(pos.coords.accuracy)
+                };
+
+                // Calcular bearing
+                let bearing = 0;
+                if (lastLocation) {
+                    bearing = turf.bearing([lastLocation.lng, lastLocation.lat], [newLoc.lng, newLoc.lat]);
+                    bearing = Math.round(bearing);
                 }
-            );
+
+                // Actualizar UI
+                document.getElementById('speedValue').textContent = newLoc.speed + ' km/h';
+                document.getElementById('bearingValue').textContent = getBearingName(bearing) + ' (' + bearing + '°)';
+                document.getElementById('accuracyValue').textContent = newLoc.accuracy + 'm';
+
+                // Actualizar marcador
+                if (!userMarker) {
+                    userMarker = L.circleMarker([newLoc.lat, newLoc.lng], {
+                        radius: 10,
+                        fillColor: '#667eea',
+                        color: '#fff',
+                        weight: 3,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    }).addTo(map);
+                } else {
+                    userMarker.setLatLng([newLoc.lat, newLoc.lng]);
+                }
+
+                // Seguimiento
+                map.panTo([newLoc.lat, newLoc.lng]);
+                if (bearing && destination) {
+                    try {
+                        map.setBearing(bearing);
+                    } catch (e) {}
+                }
+
+                // Actualizar ruta
+                if (destination) {
+                    const dist = turf.distance([newLoc.lng, newLoc.lat], [destination.lng, destination.lat], { units: 'kilometers' });
+                    document.getElementById('distanceValue').textContent = dist.toFixed(2) + ' km';
+                    document.getElementById('panelDist').textContent = dist.toFixed(2) + ' km';
+                    document.getElementById('panelEta').textContent = Math.ceil(dist / Math.max(newLoc.speed || 40, 40)) + ' min';
+                    document.getElementById('panelSpeed').textContent = newLoc.speed + ' km/h';
+                }
+
+                userLocation = newLoc;
+                lastLocation = newLoc;
+            }, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
         }
 
-        function skipLocation() {
-            locationRequested = true;
-            document.getElementById('locationModal').classList.add('hidden');
-            origin = { lat: 14.6343, lng: -90.5069 }; // Centro Guatemala
-            updateCurrentLocation();
-        }
-
-        function updateCurrentLocation() {
-            const locName = userLocation ? 'Tu ubicación' : 'Centro Guatemala';
-            document.getElementById('currentLocation').classList.remove('empty');
-            document.getElementById('currentLocationText').textContent = locName;
-        }
-
-        // ========== BÚSQUEDA Y RUTAS ==========
-        function handleSearch(e) {
-            if (e.key === 'Enter') searchDestination();
+        function getBearingName(bearing) {
+            const dirs = ['↑ N', '↗ NE', '→ E', '↘ SE', '↓ S', '↙ SW', '← W', '↖ NW'];
+            return dirs[Math.round(bearing / 45) % 8];
         }
 
         function searchDestination() {
-            const input = document.getElementById('destInput').value.trim();
-            if (!input) {
-                alert('Por favor ingresa un destino');
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const place = Object.entries(PLACES).find(([name]) => name.toLowerCase().includes(term));
+
+            if (!place) {
+                alert('Lugar no encontrado');
                 return;
             }
 
-            if (!origin) {
-                alert('Por favor establece tu ubicación actual primero');
-                return;
-            }
-
-            // Geocodificar destino (usando OSM Nominatim)
-            fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(input)},Guatemala&format=json&limit=1`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.length === 0) {
-                        alert('Destino no encontrado');
-                        return;
-                    }
-                    dest = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-                    calculateRoute();
-                })
-                .catch(() => {
-                    // Si falla, usar coordenadas de demo
-                    dest = { lat: 14.5486, lng: -90.5269 };
-                    calculateRoute();
-                });
-        }
-
-        function calculateRoute() {
-            if (!origin || !dest) return;
-
-            // Usar OSRM para ruta realista
-            const url = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${dest.lng},${dest.lat}?steps=true&geometries=geojson&overview=full`;
-
-            fetch(url)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.routes && data.routes.length > 0) {
-                        const r = data.routes[0];
-                        route = r.geometry.coordinates;
-                        showRoute(r.distance, r.duration, r.legs);
-                    } else {
-                        throw new Error('No route found');
-                    }
-                })
-                .catch(() => {
-                    // Ruta directa como fallback
-                    const d = turf.distance([origin.lng, origin.lat], [dest.lng, dest.lat], { units: 'kilometers' });
-                    route = [[origin.lng, origin.lat], [dest.lng, dest.lat]];
-                    showRoute(d * 1000, (d / 40) * 3600, []);
-                });
-        }
-
-        function showRoute(d, t, legs) {
-            dist = (d / 1000).toFixed(1);
-            time = Math.round(t / 60);
-
-            document.getElementById('routeDist').textContent = dist + ' km';
-            document.getElementById('routeTime').textContent = time + ' min';
-
-            instructions = [];
-            if (legs && legs.length > 0) {
-                legs.forEach(leg => {
-                    if (leg.steps) {
-                        leg.steps.forEach(step => {
-                            const iconMap = {
-                                'turn-sharp-left': '⬅️',
-                                'turn-left': '↙️',
-                                'turn-slight-left': '↖️',
-                                'straight': '↑',
-                                'turn-slight-right': '↗️',
-                                'turn-right': '→',
-                                'turn-sharp-right': '⬈️',
-                                'uturn-left': '🔄',
-                                'uturn-right': '🔄'
-                            };
-                            
-                            const type = step.maneuver.type;
-                            const icon = iconMap[type] || '→';
-                            
-                            let text = '';
-                            if (type.includes('turn')) {
-                                text = type.includes('left') ? 'Gira a la izquierda' : 
-                                       type.includes('right') ? 'Gira a la derecha' : 'Continúa';
-                            } else {
-                                text = 'Continúa';
-                            }
-
-                            instructions.push({
-                                icon,
-                                text,
-                                name: step.name || 'Calle sin nombre',
-                                dist: (step.distance / 1000).toFixed(1)
-                            });
-                        });
-                    }
-                });
-            }
-
-            document.getElementById('instructions').innerHTML = instructions.slice(0, 4)
-                .map(i => `<div class="instruction"><strong>${i.text}</strong> en ${i.name} (${i.dist} km)</div>`).join('');
-
-            document.getElementById('routePanel').classList.add('show');
-            redraw();
-        }
-
-        function redraw() {
-            map.eachLayer(l => {
-                if (l instanceof L.Marker || l instanceof L.Polyline) map.removeLayer(l);
-            });
-
-            if (origin) {
-                L.marker([origin.lat, origin.lng], {
-                    icon: L.icon({ 
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', 
-                        iconSize: [25, 41] 
-                    })
-                }).addTo(map);
-            }
-
-            if (dest) {
-                L.marker([dest.lat, dest.lng], {
-                    icon: L.icon({ 
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', 
-                        iconSize: [25, 41] 
-                    })
-                }).addTo(map);
-            }
-
-            if (route.length > 0) {
-                L.polyline(route.map(([lng, lat]) => [lat, lng]), { 
-                    color: '#667eea', 
-                    weight: 5, 
-                    opacity: 0.8 
-                }).addTo(map);
-            }
-
-            if (origin && dest) {
-                const b = L.latLngBounds([origin.lat, origin.lng], [dest.lat, dest.lng]);
-                map.fitBounds(b, { padding: [100, 100] });
-            }
-        }
-
-        function closeRoute() {
-            document.getElementById('routePanel').classList.remove('show');
-            route = [];
-            redraw();
-        }
-
-        // ========== NAVEGACIÓN ==========
-        function initNavMap() {
-            if (navMap) navMap.remove();
-            navMap = L.map('navMap', { zoomControl: false, attributionControl: false })
-                .setView([origin.lat, origin.lng], 16);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(navMap);
-
-            if (route.length > 0) {
-                L.polyline(route.map(([lng, lat]) => [lat, lng]), { 
-                    color: '#667eea', 
-                    weight: 6, 
-                    opacity: 0.8 
-                }).addTo(navMap);
-            }
-
-            userMarker = L.circleMarker([origin.lat, origin.lng], {
-                radius: 10, 
-                fillColor: '#667eea', 
-                color: '#fff', 
-                weight: 3, 
-                opacity: 1, 
-                fillOpacity: 0.9
-            }).addTo(navMap);
-        }
-
-        function startNav() {
-            navActive = true;
-            navPaused = false;
-            realMode = false;
-            navIdx = 0;
-            progress = 0;
-            document.getElementById('navPanel').classList.add('active');
-            document.getElementById('searchPanel').classList.add('hidden');
-            initNavMap();
-            nav();
-        }
-
-        function startReal() {
             if (!userLocation) {
-                alert('Por favor habilita tu ubicación primero');
+                alert('Esperando ubicación...');
                 return;
             }
 
-            navActive = true;
-            navPaused = false;
-            realMode = true;
-            navIdx = 0;
-            document.getElementById('navPanel').classList.add('active');
-            document.getElementById('searchPanel').classList.add('hidden');
-            initNavMap();
+            destination = place[1];
+            document.getElementById('searchInput').value = place[0];
+            document.getElementById('routePanel').classList.add('show');
+            document.getElementById('distanceRow').style.display = 'flex';
 
-            navigator.geolocation.watchPosition(
-                newPos => {
-                    const newLoc = { lat: newPos.coords.latitude, lng: newPos.coords.longitude, speed: newPos.coords.speed || 0 };
-                    const moved = turf.distance([userLocation.lng, userLocation.lat], [newLoc.lng, newLoc.lat], { units: 'kilometers' });
-                    dist = Math.max(0, parseFloat(dist) - moved).toFixed(1);
-                    speed = Math.round((newLoc.speed || 0) * 3.6);
-                    userLocation = newLoc;
-                    
-                    if (userMarker) {
-                        userMarker.setLatLng([newLoc.lat, newLoc.lng]);
-                        navMap.setView([newLoc.lat, newLoc.lng], 17);
-                    }
-                    updateNavDisplay();
-                },
-                () => {},
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-            );
+            // Dibujar ruta
+            if (routeLayer) map.removeLayer(routeLayer);
+            routeLayer = L.polyline(
+                [[userLocation.lat, userLocation.lng], [destination.lat, destination.lng]],
+                { color: '#667eea', weight: 5, opacity: 0.8 }
+            ).addTo(map);
+
+            const bounds = L.latLngBounds([userLocation.lat, userLocation.lng], [destination.lat, destination.lng]);
+            map.fitBounds(bounds, { padding: [100, 100] });
+
+            tracking = true;
         }
 
-
-
-        function nav() {
-            if (!navActive || navPaused || realMode) return;
-
-            // Incremento mucho más suave para 60fps
-            progress += 0.002;
-            if (progress > 1) progress = 1;
-
-            const currentTime = Date.now();
-
-            if (userMarker && route.length > 0) {
-                const idx = Math.floor(progress * (route.length - 1));
-                const coord = route[idx];
-                userMarker.setLatLng([coord[1], coord[0]]);
-                navMap.setView([coord[1], coord[0]], 17);
-            }
-
-            // Actualizar instrucciones cada 2 segundos
-            if (!window.lastInstructionTime || currentTime - window.lastInstructionTime > 2000) {
-                if (navIdx < instructions.length) {
-                    const inst = instructions[navIdx];
-                    document.getElementById('navIcon').textContent = inst.icon;
-                    document.getElementById('navInst').textContent = inst.text.toUpperCase();
-                    document.getElementById('navDetail').textContent = `en ${inst.name}`;
-                    speakInstruction(inst.text, inst.name);
-                    navIdx++;
-                    window.lastInstructionTime = currentTime;
-                }
-            }
-
-            // Actualizar distancia cada 333ms
-            if (!window.lastDistUpdateTime || currentTime - window.lastDistUpdateTime > 333) {
-                dist = Math.max(0, parseFloat(dist) - 0.15).toFixed(1);
-                time = Math.max(1, time - 1);
-                window.lastDistUpdateTime = currentTime;
-            }
-
-            speed = Math.round(40 + Math.random() * 20);
-            updateNavDisplay();
-
-            // Usar requestAnimationFrame para 60fps
-            if (parseFloat(dist) > 0) {
-                navInterval = requestAnimationFrame(nav);
-            } else {
-                finish();
-            }
+        function stopTracking() {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+            destination = null;
+            tracking = false;
+            document.getElementById('routePanel').classList.remove('show');
+            if (routeLayer) map.removeLayer(routeLayer);
         }
 
-        function updateNavDisplay() {
-            document.getElementById('navDist').textContent = dist;
-            document.getElementById('navDir').textContent = `${time} min • ${speed} km/h`;
-        }
+        // EVENTS
+        document.getElementById('searchBtn').addEventListener('click', searchDestination);
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchDestination();
+        });
+        document.getElementById('stopBtn').addEventListener('click', stopTracking);
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            tracking = !tracking;
+            document.getElementById('pauseBtn').textContent = tracking ? '⏸ Pausar' : '▶ Reanudar';
+        });
 
-        function speakInstruction(instruction, street) {
-            synth.cancel();
-            const text = `${instruction} en ${street}`;
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = 'es-ES';
-            u.rate = 0.85; // Más lento y calmado
-            u.pitch = 1.0;
-            u.volume = 1.0;
-            try { synth.speak(u); } catch (e) { }
-        }
-
-        function finish() {
-            navActive = false;
-            document.getElementById('navIcon').textContent = '🎉';
-            document.getElementById('navInst').textContent = '¡LLEGASTE!';
-            document.getElementById('navDetail').textContent = 'Gracias por usar INNACRI';
-            
-            const u = new SpeechSynthesisUtterance('Felicidades, has llegado a tu destino');
-            u.lang = 'es-ES';
-            u.rate = 0.85;
-            try { synth.speak(u); } catch (e) { }
-            
-            setTimeout(endNav, 4000);
-        }
-
-        function togglePause() {
-            navPaused = !navPaused;
-            const btn = document.getElementById('pauseBtn');
-            if (navPaused) {
-                btn.textContent = '▶ Reanudar';
-                synth.pause();
-                clearTimeout(navInterval);
-            } else {
-                btn.textContent = '⏸ Pausar';
-                synth.resume();
-                if (!realMode) nav();
-            }
-        }
-
-        function endNav() {
-            navActive = false;
-            navPaused = false;
-            realMode = false;
-            clearTimeout(navInterval);
-            cancelAnimationFrame(navInterval);
-            synth.cancel();
-            if (geoId !== null) navigator.geolocation.clearWatch(geoId);
-            document.getElementById('navPanel').classList.remove('active');
-            document.getElementById('searchPanel').classList.remove('hidden');
-            if (navMap) navMap.remove();
-        }
-
-        // ========== ESTADO Y UTILIDADES ==========
-        function updateStatus() {
-            const s = document.getElementById('status');
-            const text = document.getElementById('statusText');
-            s.classList.toggle('offline', !isOnline);
-            text.textContent = isOnline ? 'Conectado' : 'Sin conexión';
-        }
-
-        // Inicializar
-        init();
+        // INIT
+        window.addEventListener('load', () => {
+            initMap();
+            startTracking();
+        });
     </script>
 </body>
 </html>
