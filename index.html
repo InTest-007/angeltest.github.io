@@ -679,6 +679,8 @@
         let isOnline = navigator.onLine;
         let userLocation = null;
         let locationRequested = false;
+        let lastInstructionTime = 0;
+        let lastDistUpdateTime = 0;
 
         // ========== INICIALIZACIÓN ==========
         function init() {
@@ -983,11 +985,16 @@
             );
         }
 
+
+
         function nav() {
             if (!navActive || navPaused || realMode) return;
 
-            progress += 0.01;
+            // Incremento mucho más suave para 60fps
+            progress += 0.002;
             if (progress > 1) progress = 1;
+
+            const currentTime = Date.now();
 
             if (userMarker && route.length > 0) {
                 const idx = Math.floor(progress * (route.length - 1));
@@ -996,22 +1003,35 @@
                 navMap.setView([coord[1], coord[0]], 17);
             }
 
-            if (navIdx < instructions.length) {
-                const inst = instructions[navIdx];
-                document.getElementById('navIcon').textContent = inst.icon;
-                document.getElementById('navInst').textContent = inst.text.toUpperCase();
-                document.getElementById('navDetail').textContent = `en ${inst.name}`;
-                speakInstruction(inst.text, inst.name);
-                navIdx++;
+            // Actualizar instrucciones cada 2 segundos
+            if (!window.lastInstructionTime || currentTime - window.lastInstructionTime > 2000) {
+                if (navIdx < instructions.length) {
+                    const inst = instructions[navIdx];
+                    document.getElementById('navIcon').textContent = inst.icon;
+                    document.getElementById('navInst').textContent = inst.text.toUpperCase();
+                    document.getElementById('navDetail').textContent = `en ${inst.name}`;
+                    speakInstruction(inst.text, inst.name);
+                    navIdx++;
+                    window.lastInstructionTime = currentTime;
+                }
             }
 
-            dist = Math.max(0, parseFloat(dist) - 0.05).toFixed(1);
-            time = Math.max(1, time - 1);
-            speed = Math.round(40 + Math.random() * 20);
+            // Actualizar distancia cada 333ms
+            if (!window.lastDistUpdateTime || currentTime - window.lastDistUpdateTime > 333) {
+                dist = Math.max(0, parseFloat(dist) - 0.15).toFixed(1);
+                time = Math.max(1, time - 1);
+                window.lastDistUpdateTime = currentTime;
+            }
 
+            speed = Math.round(40 + Math.random() * 20);
             updateNavDisplay();
 
-            navInterval = parseFloat(dist) > 0 ? setTimeout(nav, 500) : finish();
+            // Usar requestAnimationFrame para 60fps
+            if (parseFloat(dist) > 0) {
+                navInterval = requestAnimationFrame(nav);
+            } else {
+                finish();
+            }
         }
 
         function updateNavDisplay() {
@@ -1063,6 +1083,7 @@
             navPaused = false;
             realMode = false;
             clearTimeout(navInterval);
+            cancelAnimationFrame(navInterval);
             synth.cancel();
             if (geoId !== null) navigator.geolocation.clearWatch(geoId);
             document.getElementById('navPanel').classList.remove('active');
