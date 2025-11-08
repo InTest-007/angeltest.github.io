@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INNACRI - Real-Time GPS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turf.js/6/turf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e27;
+            overflow: hidden;
+        }
+
+        body {
+            color: #fff;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .map {
+            flex: 1;
+            width: 100%;
+            background: #e8e8e8;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .leaflet-container {
+            background: #e8e8e8 !important;
+        }
+
+        /* TOP PANEL */
+        .top-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(10, 14, 39, 0.98) 0%, rgba(26, 31, 58, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            padding: 16px;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .top-content {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            color: #fff;
+            font-size: 14px;
+            max-width: 600px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.12);
+            border-color: #667eea;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .btn {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: #667eea;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
+
+        /* HUD */
+        .hud {
+            position: fixed;
+            top: 75px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            padding: 16px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            z-index: 500;
+            min-width: 300px;
+            font-size: 14px;
+        }
+
+        .hud-title {
+            color: #667eea;
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .hud-row:last-child {
+            border-bottom: none;
+        }
+
+        .hud-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+        }
+
+        .hud-value {
+            font-weight: 700;
+            color: #4CAF50;
+            font-family: monospace;
+        }
+
+        .hud-value.bearing {
+            color: #667eea;
+        }
+
+        .hud-value.distance {
+            color: #FF9800;
+        }
+
+        .status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ROUTE PANEL */
+        .route-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(10, 14, 39, 0.98), rgba(26, 31, 58, 0.95));
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            z-index: 500;
+            display: none;
+            border-top: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .route-panel.show {
+            display: flex;
+            gap: 12px;
+        }
+
+        .route-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .route-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-action {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        @media (max-width: 768px) {
+            .hud {
+                min-width: 240px;
+                right: 10px;
+                top: 70px;
+                padding: 12px 14px;
+            }
+
+            .route-panel {
+                padding: 12px;
+            }
+
+            .buttons {
+                flex-direction: row;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="map" id="map"></div>
+    </div>
+
+    <!-- TOP PANEL -->
+    <div class="top-panel">
+        <div class="top-content">
+            <input type="text" class="search-input" id="searchInput" placeholder="Buscar destino (Zona 10, Antigua, etc)">
+            <button class="btn" id="searchBtn">🔍</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div class="hud" id="hud" style="display: none;">
+        <div class="hud-title">
+            <span class="status"></span> TRACKING EN VIVO
+        </div>
+        <div class="hud-row">
+            <span class="hud-label">Velocidad</span>
+            <span class="hud-value" id="speedValue">0 km/h</span>
+        </div>
+        <div class="hud-row">
+            <span class="hud-label">Rumbo</span>
+            <span class="hud-value bearing" id="bearingValue">↑ N (0°)</span>
+        </div>
+        <div class="hud-row">
+            <span class="hud-label">Precisión</span>
+            <span class="hud-value" id="accuracyValue">0m</span>
+        </div>
+        <div class="hud-row" id="distanceRow" style="display: none;">
+            <span class="hud-label">Dist. Destino</span>
+            <span class="hud-value distance" id="distanceValue">0 km</span>
+        </div>
+    </div>
+
+    <!-- ROUTE PANEL -->
+    <div class="route-panel" id="routePanel">
+        <div class="route-info">
+            <div class="route-stat">
+                <span class="stat-label">Distancia</span>
+                <span class="stat-value" id="panelDist">0 km</span>
+            </div>
+            <div class="route-stat">
+                <span class="stat-label">ETA</span>
+                <span class="stat-value" id="panelEta">0 min</span>
+            </div>
+            <div class="route-stat">
+                <span class="stat-label">Velocidad</span>
+                <span class="stat-value" id="panelSpeed">0 km/h</span>
+            </div>
+        </div>
+        <div class="buttons">
+            <button class="btn-action" id="pauseBtn">⏸ Pausar</button>
+            <button class="btn-action btn-stop" id="stopBtn">✕ Finalizar</button>
+        </div>
+    </div>
+
+    <script>
+        // PLACES
+        const PLACES = {
+            'Zona 10': { lat: 14.6126, lng: -90.5218 },
+            'Zona 1': { lat: 14.6307, lng: -90.5010 },
+            'Zona 15': { lat: 14.6411, lng: -90.4880 },
+            'Zona 3': { lat: 14.5960, lng: -90.5112 },
+            'Zona 18': { lat: 14.5500, lng: -90.5800 },
+            'Aeropuerto': { lat: 14.3583, lng: -90.6525 },
+            'Antigua': { lat: 14.5729, lng: -90.7381 },
+            'Tikal': { lat: 17.2220, lng: -89.6239 },
+            'Volcán Pacaya': { lat: 14.3833, lng: -90.6000 },
+            'Lago Atitlán': { lat: 14.6961, lng: -91.2458 }
+        };
+
+        // STATE
+        let map;
+        let userLocation = null;
+        let destination = null;
+        let lastLocation = null;
+        let watchId = null;
+        let userMarker = null;
+        let routeLayer = null;
+        let tracking = false;
+
+        // INIT MAP
+        function initMap() {
+            map = L.map('map', {
+                center: [14.6349, -90.5069],
+                zoom: 15,
+                zoomControl: false,
+                attributionControl: false
+            });
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                subdomains: 'abcd',
+                maxZoom: 20,
+                attribution: ''
+            }).addTo(map);
+        }
+
+        // GET LOCATION
+        function startTracking() {
+            if (!navigator.geolocation) {
+                alert('Geolocalización no disponible');
+                return;
+            }
+
+            document.getElementById('hud').style.display = 'block';
+
+            // Primera ubicación
+            navigator.geolocation.getCurrentPosition((pos) => {
+                userLocation = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude
+                };
+                lastLocation = userLocation;
+                map.setView([userLocation.lat, userLocation.lng], 15);
+            });
+
+            // Watch position
+            watchId = navigator.geolocation.watchPosition((pos) => {
+                const newLoc = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    speed: Math.round((pos.coords.speed || 0) * 3.6),
+                    accuracy: Math.round(pos.coords.accuracy)
+                };
+
+                // Calcular bearing
+                let bearing = 0;
+                if (lastLocation) {
+                    bearing = turf.bearing([lastLocation.lng, lastLocation.lat], [newLoc.lng, newLoc.lat]);
+                    bearing = Math.round(bearing);
+                }
+
+                // Actualizar UI
+                document.getElementById('speedValue').textContent = newLoc.speed + ' km/h';
+                document.getElementById('bearingValue').textContent = getBearingName(bearing) + ' (' + bearing + '°)';
+                document.getElementById('accuracyValue').textContent = newLoc.accuracy + 'm';
+
+                // Actualizar marcador
+                if (!userMarker) {
+                    userMarker = L.circleMarker([newLoc.lat, newLoc.lng], {
+                        radius: 10,
+                        fillColor: '#667eea',
+                        color: '#fff',
+                        weight: 3,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    }).addTo(map);
+                } else {
+                    userMarker.setLatLng([newLoc.lat, newLoc.lng]);
+                }
+
+                // Seguimiento
+                map.panTo([newLoc.lat, newLoc.lng]);
+                if (bearing && destination) {
+                    try {
+                        map.setBearing(bearing);
+                    } catch (e) {}
+                }
+
+                // Actualizar ruta
+                if (destination) {
+                    const dist = turf.distance([newLoc.lng, newLoc.lat], [destination.lng, destination.lat], { units: 'kilometers' });
+                    document.getElementById('distanceValue').textContent = dist.toFixed(2) + ' km';
+                    document.getElementById('panelDist').textContent = dist.toFixed(2) + ' km';
+                    document.getElementById('panelEta').textContent = Math.ceil(dist / Math.max(newLoc.speed || 40, 40)) + ' min';
+                    document.getElementById('panelSpeed').textContent = newLoc.speed + ' km/h';
+                }
+
+                userLocation = newLoc;
+                lastLocation = newLoc;
+            }, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+        }
+
+        function getBearingName(bearing) {
+            const dirs = ['↑ N', '↗ NE', '→ E', '↘ SE', '↓ S', '↙ SW', '← W', '↖ NW'];
+            return dirs[Math.round(bearing / 45) % 8];
+        }
+
+        function searchDestination() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const place = Object.entries(PLACES).find(([name]) => name.toLowerCase().includes(term));
+
+            if (!place) {
+                alert('Lugar no encontrado');
+                return;
+            }
+
+            if (!userLocation) {
+                alert('Esperando ubicación...');
+                return;
+            }
+
+            destination = place[1];
+            document.getElementById('searchInput').value = place[0];
+            document.getElementById('routePanel').classList.add('show');
+            document.getElementById('distanceRow').style.display = 'flex';
+
+            // Dibujar ruta
+            if (routeLayer) map.removeLayer(routeLayer);
+            routeLayer = L.polyline(
+                [[userLocation.lat, userLocation.lng], [destination.lat, destination.lng]],
+                { color: '#667eea', weight: 5, opacity: 0.8 }
+            ).addTo(map);
+
+            const bounds = L.latLngBounds([userLocation.lat, userLocation.lng], [destination.lat, destination.lng]);
+            map.fitBounds(bounds, { padding: [100, 100] });
+
+            tracking = true;
+        }
+
+        function stopTracking() {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+            destination = null;
+            tracking = false;
+            document.getElementById('routePanel').classList.remove('show');
+            if (routeLayer) map.removeLayer(routeLayer);
+        }
+
+        // EVENTS
+        document.getElementById('searchBtn').addEventListener('click', searchDestination);
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchDestination();
+        });
+        document.getElementById('stopBtn').addEventListener('click', stopTracking);
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            tracking = !tracking;
+            document.getElementById('pauseBtn').textContent = tracking ? '⏸ Pausar' : '▶ Reanudar';
+        });
+
+        // INIT
+        window.addEventListener('load', () => {
+            initMap();
+            startTracking();
+        });
+    </script>
+</body>
+</html>
